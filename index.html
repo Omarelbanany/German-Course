@@ -4,40 +4,147 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>German Vocabulary Quiz</title>
+
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-  .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
-  button { margin: 5px 0; padding: 10px; width: 100%; border-radius: 5px; border: none; cursor: pointer; font-size: 16px;}
-  button:hover { background: #eee; }
-  .correct { background: #c6f6d5; }
-  .wrong { background: #fed7d7; }
-  .sentence { margin-top: 10px; font-style: italic; }
-  .score { margin-bottom: 10px; font-weight: bold; }
-  .range-inputs { margin-bottom: 15px; }
+body {
+ height: 100%;
+ margin: 0;
+ ; font-family: system-ui, sans-serif;
+  background:linear-gradient(90deg,#fdfdfd,#dbbf88);
+  padding: 12px;
+  max-width: 480px;
+  margin: auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.range {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.range input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.range button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background: #ddd;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+#progressBar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff0000, #51ff00);
+  transition: width 0.6s ease;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  transition: background 0.8s ease;
+}
+
+.card.correct {
+  background: linear-gradient(135deg, #b7f8db, #50c878);
+}
+
+.card.wrong {
+  background: linear-gradient(135deg, #ff9a9e, #ff3d3d);
+}
+
+h2 {
+  text-align: center;
+}
+
+button.option {
+  width: 100%;
+  padding: 14px;
+  margin: 6px 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button.correct { background: #c6f6d5; }
+button.wrong { background: #fed7d7; }
+
+button:disabled { cursor: default; }
+
+.sentence {
+  margin-top: 12px;
+  text-align: center;
+  font-style: italic;
+}
+
+#nextBtn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  display: none;
+}
 </style>
 </head>
+
 <body>
 
 <h1>German Vocabulary Quiz</h1>
 
-<div class="range-inputs">
-  Start word #: <input type="number" id="startRange" value="1" min="1" max="480">
-  End word #: <input type="number" id="endRange" value="100" min="1" max="480">
-  <button onclick="startQuiz()">Start Quiz</button>
+<div class="range">
+  <input id="startRange" type="number" value="1" min="1">
+  <input id="endRange" type="number" value="10" min="1">
+  <button onclick="startQuiz()">Start</button>
 </div>
 
-<div class="score" id="score">Score: 0 / 0</div>
+<div class="progress-container">
+  <div id="progressBar"></div>
+</div>
+
+<div class="stats">
+  <span id="score">Score: 0 / 0</span>
+  <span id="streak">🔥 Streak: 0</span>
+</div>
 
 <div class="card" id="quizCard" style="display:none;">
-  <h2 id="germanWord">Word</h2>
+  <h2 id="germanWord"></h2>
   <div id="options"></div>
   <div class="sentence" id="sentence"></div>
-  <button id="nextBtn" style="display:none;" onclick="nextWord()">Next Word</button>
+  <button id="nextBtn" onclick="nextWord()">Next</button>
 </div>
 
 <script>
 const allWords = [
-{german: "Abenteuerspielplatz", english: "adventure playground", sentence: "Kinder spielen gerne auf dem Abenteuerspielplatz."},
+  {german: "Abenteuerspielplatz", english: "adventure playground", sentence: "Kinder spielen gerne auf dem Abenteuerspielplatz."},
 {german: "Abstand", english: "distance", sentence: "Bitte halte Abstand zu den anderen Personen."},
 {german: "achten", english: "to pay attention", sentence: "Man muss im Straßenverkehr gut aufpassen und auf Schilder achten."},
 {german: "affer", english: "faster / quicker", sentence: "Er lief affer als seine Freunde."},
@@ -518,79 +625,107 @@ const allWords = [
 {german: "kennenlernen", english: "to get to know", sentence: "Wir lernen neue Leute kennen."},
 {german: "Thema", english: "topic", sentence: "Das Thema ist spannend."},
 {german: "Blatt", english: "sheet", sentence: "Schreib auf das Blatt."},
-{german: "auswählen", english: "to choose / select", sentence: "Du kannst eine Antwort auswählen."}
 ];
 
-
-
 let quizWords = [];
-let currentWordIndex = 0;
+let index = 0;
 let score = 0;
+let streak = 0;
 
 function startQuiz() {
-  const start = parseInt(document.getElementById("startRange").value) - 1;
-  const end = parseInt(document.getElementById("endRange").value);
+  const start = Number(startRange.value) - 1;
+  const end = Number(endRange.value);
+
   quizWords = allWords.slice(start, end);
-  currentWordIndex = 0;
+  index = 0;
   score = 0;
-  document.getElementById("score").innerText = `Score: 0 / ${quizWords.length}`;
+  streak = 0;
+
   document.getElementById("quizCard").style.display = "block";
+  document.getElementById("score").innerText = `Score: 0 / ${quizWords.length}`;
+  document.getElementById("streak").innerText = "🔥 Streak: 0";
+  document.getElementById("progressBar").style.width = "0%";
+
   nextWord();
 }
 
 function nextWord() {
-  document.getElementById("nextBtn").style.display = "none";
-  document.getElementById("sentence").innerText = "";
-  const optionsDiv = document.getElementById("options");
-  optionsDiv.innerHTML = "";
+  const card = document.getElementById("quizCard");
+  card.classList.remove("correct","wrong");
 
-  if (currentWordIndex >= quizWords.length) {
-    document.getElementById("germanWord").innerText = "Quiz Completed!";
-    optionsDiv.innerHTML = "";
-    document.getElementById("sentence").innerText = `Final Score: ${score} / ${quizWords.length}`;
+  document.getElementById("sentence").innerText = "";
+  document.getElementById("nextBtn").style.display = "none";
+
+  if (index >= quizWords.length) {
+    document.getElementById("germanWord").innerText = "Finished 🎉";
+    document.getElementById("options").innerHTML = "";
     return;
   }
 
-  const word = quizWords[currentWordIndex];
+  const word = quizWords[index];
   document.getElementById("germanWord").innerText = word.german;
 
-  // Create multiple-choice options
+  const optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML = "";
+
   let choices = [word.english];
   while (choices.length < 4) {
-    const randomWord = allWords[Math.floor(Math.random() * allWords.length)].english;
-    if (!choices.includes(randomWord)) choices.push(randomWord);
+    let r = allWords[Math.floor(Math.random()*allWords.length)].english;
+    if (!choices.includes(r)) choices.push(r);
   }
 
-  // Shuffle choices
   choices.sort(() => Math.random() - 0.5);
 
-  choices.forEach(choice => {
+  choices.forEach(c => {
     const btn = document.createElement("button");
-    btn.innerText = choice;
+    btn.className = "option";
+    btn.innerText = c;
     btn.onclick = () => checkAnswer(btn, word.english);
     optionsDiv.appendChild(btn);
   });
+
+  updateProgress();
 }
 
-function checkAnswer(button, correct) {
-  const buttons = document.querySelectorAll("#options button");
-  buttons.forEach(b => b.disabled = true);
+function checkAnswer(btn, correct) {
+  const buttons = document.querySelectorAll(".option");
+  const card = document.getElementById("quizCard");
 
-  if (button.innerText === correct) {
-    button.classList.add("correct");
+  buttons.forEach(b => b.disabled = true);
+  card.classList.remove("correct","wrong");
+
+  if (btn.innerText === correct) {
+    btn.classList.add("correct");
+    card.classList.add("correct");
     score++;
+    streak++;
   } else {
-    button.classList.add("wrong");
-    // Highlight correct answer
-    buttons.forEach(b => { if(b.innerText === correct) b.classList.add("correct"); });
+    btn.classList.add("wrong");
+    card.classList.add("wrong");
+    streak = 0;
+    buttons.forEach(b => {
+      if (b.innerText === correct) b.classList.add("correct");
+    });
   }
 
-  document.getElementById("sentence").innerText = quizWords[currentWordIndex].sentence;
-  currentWordIndex++;
-  document.getElementById("score").innerText = `Score: ${score} / ${quizWords.length}`;
+  document.getElementById("sentence").innerText = quizWords[index].sentence;
+  index++;
+
+  document.getElementById("score").innerText =
+    `Score: ${score} / ${quizWords.length}`;
+  document.getElementById("streak").innerText =
+    `🔥 Streak: ${streak}`;
+
   document.getElementById("nextBtn").style.display = "block";
+}
+
+function updateProgress() {
+  const percent = (index / quizWords.length) * 100;
+  document.getElementById("progressBar").style.width = percent + "%";
 }
 </script>
 
 </body>
 </html>
+
+
